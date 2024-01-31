@@ -1,4 +1,4 @@
-# The Temelpa Take-Home Assignment
+# The chauvm Take-Home Assignment
 
 Please create a __private__ version of this repo, complete the objectives, and once you
 are finished, send a link to your repo to us.

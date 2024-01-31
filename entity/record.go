@@ -3,6 +3,8 @@ package entity
 type Record struct {
 	ID   int               `json:"id"`
 	Data map[string]string `json:"data"`
+	Accumulated map[string]string `json:"accumulated"`
+	Version int `json:"version"`
 }
 
 func (d *Record) Copy() Record {

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/chauvm/timetravel/entity"
+	"github.com/chauvm/timetravel/service"
 	"github.com/gorilla/mux"
-	"github.com/temelpa/timetravel/entity"
-	"github.com/temelpa/timetravel/service"
 )
 
 // POST /records/{id}
