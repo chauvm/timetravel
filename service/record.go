@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/chauvm/timetravel/entity"
@@ -80,4 +81,59 @@ func (s *InMemoryRecordService) UpdateRecord(ctx context.Context, id int, update
 	}
 
 	return entry.Copy(), nil
+}
+
+// PersistentRecordService is a persistent implementation of RecordService.
+type PersistentRecordService struct {
+	db *sql.DB
+}
+
+func NewPersistentRecordService(db *sql.DB) PersistentRecordService {
+	return PersistentRecordService{
+		db: db,
+	}
+}
+
+func (s *PersistentRecordService) GetRecord(ctx context.Context, id int) (entity.Record, error) {
+	// record := s.data[id]
+	// if record.ID == 0 {
+	// 	return entity.Record{}, ErrRecordDoesNotExist
+	// }
+
+	// record = record.Copy() // copy is necessary so modifations to the record don't change the stored record
+	// return record, nil
+	return entity.Record{}, nil
+}
+
+func (s *PersistentRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
+	// id := record.ID
+	// if id <= 0 {
+	// 	return ErrRecordIDInvalid
+	// }
+
+	// existingRecord := s.data[id]
+	// if existingRecord.ID != 0 {
+	// 	return ErrRecordAlreadyExists
+	// }
+
+	// s.data[id] = record
+	return nil
+}
+
+func (s *PersistentRecordService) UpdateRecord(ctx context.Context, id int, updates map[string]*string) (entity.Record, error) {
+	// entry := s.data[id]
+	// if entry.ID == 0 {
+	// 	return entity.Record{}, ErrRecordDoesNotExist
+	// }
+
+	// for key, value := range updates {
+	// 	if value == nil { // deletion update
+	// 		delete(entry.Data, key)
+	// 	} else {
+	// 		entry.Data[key] = *value
+	// 	}
+	// }
+
+	// return entry.Copy(), nil
+	return entity.Record{}, nil
 }

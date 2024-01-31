@@ -20,27 +20,37 @@ func logError(err error) {
 }
 
 func main() {
+	log.Println("main: starting server...")
 	router := mux.NewRouter()
 
 	// v1
-	service := service.NewInMemoryRecordService()
-	api := api.NewAPI(&service)
+	imMemoryService := service.NewInMemoryRecordService()
+	apiV1 := api.NewAPI(&imMemoryService)
 
 	apiRoute := router.PathPrefix("/api/v1").Subrouter()
 	apiRoute.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 		logError(err)
 	})
-	api.CreateRoutes(apiRoute)
+	apiV1.CreateRoutes(apiRoute)
 
 	// v2
-	db := database.connection.CreateConnection()
-	apiV2 := api.NewAPIV2(&db)
+	log.Println("main: create database connection")
+	db, err := database.CreateConnection()
+	log.Println("main: database connection created")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	persistentService := service.NewPersistentRecordService(db)
+	apiV2 := api.NewAPIV2(&persistentService)
 	apiRouteV2 := router.PathPrefix("/api/v2").Subrouter()
 	apiRouteV2.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 		logError(err)
 	})
+	apiV2.CreateRoutes(apiRouteV2)
 
 	address := "127.0.0.1:8000"
 	srv := &http.Server{

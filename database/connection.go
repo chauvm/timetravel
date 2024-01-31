@@ -5,9 +5,10 @@ import (
 	"log"
 
 	"github.com/chauvm/timetravel/entity"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-const DATABASE_FILE string = "rainbow.db"
+const DATABASE_FILE string = "./rainbow.db"
 
 const INIT_DB string = `
  CREATE TABLE IF NOT EXISTS records (
@@ -19,7 +20,8 @@ const INIT_DB string = `
  );`
 
 // create a SQLite3 database connection, or create the SQLite file if not existed yet
-func createConnection() (*sql.DB, error) {
+func CreateConnection() (*sql.DB, error) {
+	log.Println("Creating database connection...")
 	db, err := sql.Open("sqlite3", DATABASE_FILE)
 	if err != nil {
 		log.Fatal(err)
