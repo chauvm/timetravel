@@ -118,28 +118,52 @@ func TestPostRecordsV2(t *testing.T) {
 	assert.Equal(t, 200, rr3.Code)
 	assert.Equal(t, "{\"id\":1,\"data\":{\"hello\":\"world 2\",\"status\":\"ok\"}}\n", rr3.Body.String())
 
+	// update the record with null
+	var jsonStr3 = []byte(`{"hello":null}`)
+	req4, _ := http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer(jsonStr3))
+	rr4 := makeRequestV2(router, req4)
+	assert.Equal(t, 200, rr4.Code)
+	assert.Equal(t, "{\"id\":1,\"data\":{\"status\":\"ok\"}}\n", rr4.Body.String())
+
+	// confirm the record is updated
+	req5, _ := http.NewRequest("GET", "/api/v2/records/1", nil)
+	rr5 := makeRequestV2(router, req5)
+	assert.Equal(t, 200, rr5.Code)
+	assert.Equal(t, "{\"id\":1,\"data\":{\"status\":\"ok\"}}\n", rr5.Body.String())
 }
 
 func TestGetVersions(t *testing.T) {
 	router := setUpV2()
-	// create a couple of versions of a record
-	http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world"}`)))
-	http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world 2","status":"ok"}`)))
-	http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":null}`)))
-
+	// a non-existing record should return an empty list without throwing an error
 	req, _ := http.NewRequest("GET", "/api/v2/records/1/versions", nil)
 	rr := makeRequestV2(router, req)
 	assert.Equal(t, 200, rr.Code)
-	assert.Equal(t, "{\"data\":[1, 2, 3]}", rr.Body.String())
+	assert.Equal(t, "{\"data\":[]}\n", rr.Body.String())
+
+	// create a couple of versions of a record
+	req, _ = http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world"}`)))
+	makeRequestV2(router, req)
+	req, _ = http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world 2","status":"ok"}`)))
+	makeRequestV2(router, req)
+	req, _ = http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":null}`)))
+	makeRequestV2(router, req)
+
+	req1, _ := http.NewRequest("GET", "/api/v2/records/1/versions", nil)
+	rr1 := makeRequestV2(router, req1)
+	assert.Equal(t, 200, rr1.Code)
+	assert.Equal(t, "{\"data\":[3,2,1]}\n", rr1.Body.String())
 }
 
 func TestGetRecordAtTimestamp(t *testing.T) {
 	router := setUpV2()
 	// create a couple of versions of a record
 	// TODO: freeze time
-	http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world"}`)))
-	http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world 2","status":"ok"}`)))
-	http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":null}`)))
+	req, _ := http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world"}`)))
+	makeRequestV2(router, req)
+	req, _ = http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world 2","status":"ok"}`)))
+	makeRequestV2(router, req)
+	req, _ = http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":null}`)))
+	makeRequestV2(router, req)
 
 	// assert data at each version
 	req1, _ := http.NewRequest("GET", "/api/v2/records/1/1707222000", nil)

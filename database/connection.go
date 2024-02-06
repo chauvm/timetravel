@@ -117,21 +117,42 @@ func GetLatestRecord(db *sql.DB, id int) (*entity.Record, error) {
 	return &record, nil
 }
 
-func GetRecords(db *sql.DB, id int) ([]*entity.Record, error) {
-	rows, err := db.Query("SELECT * FROM records WHERE id = ?;", id)
+// Do we need this?
+// func GetRecords(db *sql.DB, id int) ([]*entity.Record, error) {
+// 	rows, err := db.Query("SELECT * FROM records WHERE id = ?;", id)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+
+// 	var records []*entity.Record
+// 	for rows.Next() {
+// 		var record entity.Record
+// 		err = rows.Scan(&record.ID, &record.Timestamp, &record.Data, &record.Updates, &record.Version)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		records = append(records, &record)
+// 	}
+// 	return records, nil
+// }
+
+func GetRecordVersions(db *sql.DB, id int) ([]int, error) {
+	rows, err := db.Query("SELECT version FROM records WHERE id = ? ORDER BY version DESC", id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var records []*entity.Record
+	versions := make([]int, 0)
 	for rows.Next() {
-		var record entity.Record
-		err = rows.Scan(&record.ID, &record.Timestamp, &record.Data, &record.Updates, &record.Version)
+		var version int
+		err = rows.Scan(&version)
 		if err != nil {
 			return nil, err
 		}
-		records = append(records, &record)
+		versions = append(versions, version)
+
 	}
-	return records, nil
+	return versions, nil
 }

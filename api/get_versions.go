@@ -23,16 +23,18 @@ func (a *APIV2) GetVersions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record, err := a.records.GetRecord(
+	versions, err := a.records.GetRecordVersions(
 		ctx,
 		int(idNumber),
 	)
 	if err != nil {
-		err := writeError(w, fmt.Sprintf("record of id %v does not exist", idNumber), http.StatusBadRequest)
+		err := writeError(w, fmt.Sprintf("Unable to retrieve versions for record %d", idNumber), http.StatusBadRequest)
 		logError(err)
 		return
 	}
 
-	err = writeJSON(w, record, http.StatusOK)
+	response := map[string]interface{}{"data": versions}
+
+	err = writeJSON(w, response, http.StatusOK)
 	logError(err)
 }
