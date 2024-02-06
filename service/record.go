@@ -133,19 +133,40 @@ func (s *PersistentRecordService) CreateRecord(ctx context.Context, record entit
 }
 
 func (s *PersistentRecordService) UpdateRecord(ctx context.Context, id int, updates map[string]*string) (entity.Record, error) {
-	// entry := s.data[id]
-	// if entry.ID == 0 {
-	// 	return entity.Record{}, ErrRecordDoesNotExist
-	// }
+	latestRecord, err := s.GetRecord(ctx, id)
+	if err != nil {
+		return entity.Record{}, err
+	}
+	latestRecordVersion := latestRecord.Version
 
-	// for key, value := range updates {
-	// 	if value == nil { // deletion update
-	// 		delete(entry.Data, key)
-	// 	} else {
-	// 		entry.Data[key] = *value
-	// 	}
-	// }
+	// newRecordData is a copy of the latestRecord's data
+	newRecordData := map[string]string{}
+	for key, value := range latestRecord.Data {
+		newRecordData[key] = value
+	}
 
-	// return entry.Copy(), nil
-	return entity.Record{}, nil
+	// apply the updates to newRecordData
+	for key, value := range updates {
+		if value == nil {
+			delete(newRecordData, key)
+		} else {
+			newRecordData[key] = *value
+		}
+	}
+
+	// create a new record with the updated data
+	newRecord := entity.Record{
+		ID:      id,
+		Data:    newRecordData,
+		Updates: latestRecord.Updates,
+		Version: latestRecordVersion + 1,
+	}
+
+	_, err = database.InsertRecord(s.db, newRecord)
+
+	if err != nil {
+		return entity.Record{}, err
+	}
+
+	return newRecord, nil
 }

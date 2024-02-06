@@ -52,10 +52,10 @@ We can use a record's insertion timestamps as unique identifiers to distinguish 
 2. How to effectively accumulate fields across a record's versions?
 2.1 Merge updates one by one starting from the beginning at runtime
 
-The most brute-force way is to store each update as a blob and merge appropriate updates at runtime. However, this approach could be quite time-consuming and memory-consuming if there are many updates.
+The most brute-force way is to store each update as a blob and merge appropriate updates at runtime to get the data. However, this approach could be quite time-consuming and memory-consuming if there are many updates.
 
 records:
-id | timestamp | data
+id | timestamp | updates
 ---------------------
 1  | ts1       | {"hello":"world"}
 1  | ts2       | {"hello":"world 2","status":"ok"}
@@ -64,11 +64,11 @@ id | timestamp | data
 
 2.2 Calculate composition after each update
 
-In addition to storing each update's data, we also calculate accumulated record data at that version.
+In addition to storing each update, we also calculate accumulated record data at that version.
 Record retrieval at a particular version would be fast, with the trade-off of space. Obviously, if a record contains a lot of fields, a single field update would require storing another set of record.
 
 records
-id | timestamp | data | accumulated_data
+id | timestamp | updates | data
 ---------------------
 1  | ts1       | {"hello":"world"}                 | {"hello":"world"}
 1  | ts2       | {"hello":"world 2","status":"ok"} | {"hello":"world 2","status":"ok"}
@@ -81,7 +81,7 @@ id | timestamp | data | accumulated_data
 We can combine the previous approaches. Depending on the traffic pattern, we could come up with a threshold, such as after 10 new updates, we calculate a checkpoint for the record, i.e. how the record looks like after 10, 20, 30... updates. If users request to see data at `version=13`, we find the checkpoint data at `version=10`, find the updates happening at timestamps between `10` and `13`, and merge their fields to return `{"hi":"mom"}`.
 
 records
-id  | timestamp | data | accumulated
+id  | timestamp | updates | data
 ---------------------
 1   | ts1       | {"hello":"world"}    | NULL
 ...
@@ -144,21 +144,3 @@ Normally I write unit tests as I implement the code, but I'd need more time to g
   - acceptance criteria 5: kill the server and restart, see if a GET request still returns data
 - (Stretch) Optimization for DB
   - modify primary keys, add indexes as needed
-
-
-
-## Implementation notes
-### Sqlite
-If have time create a separate test db for local testing
-```
-sqlite3 /tmp/rainbow_test.db
-SQLite version 3.39.5 2022-10-14 20:58:05
-Enter ".help" for usage hints.
-sqlite> CREATE TABLE IF NOT EXISTS records (
-   ...>  id INTEGER NOT NULL PRIMARY KEY,
-   ...>  timestamp DATETIME NOT NULL,
-   ...>  data STRING NOT NULL,
-   ...>  accumulated STRING,
-   ...>  version INTEGER NOT NULL
-   ...>  );
-```

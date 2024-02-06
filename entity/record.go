@@ -1,11 +1,11 @@
 package entity
 
 type Record struct {
-	ID          int               `json:"id"`
-	Data        map[string]string `json:"data"`
-	Accumulated map[string]string `json:"accumulated"`
-	Version     int               `json:"version"`
-	Timestamp   string            `json:"timestamp"`
+	ID        int               `json:"id"`
+	Data      map[string]string `json:"data"`
+	Updates   map[string]string `json:"updates"`
+	Version   int               `json:"version"`
+	Timestamp string            `json:"timestamp"`
 }
 
 type ExternalRecord struct {
@@ -30,6 +30,6 @@ func (d *Record) Copy() Record {
 func (d *Record) GetExternalRecord() ExternalRecord {
 	return ExternalRecord{
 		ID:   d.ID,
-		Data: d.Accumulated,
+		Data: d.Data,
 	}
 }

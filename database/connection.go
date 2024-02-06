@@ -18,7 +18,7 @@ const INIT_DB string = `
  id INTEGER NOT NULL,
  timestamp DATETIME NOT NULL,
  data STRING NOT NULL,
- accumulated STRING,
+ updates STRING,
  version INTEGER NOT NULL,
  PRIMARY KEY (id ASC, version DESC)
  );`
@@ -59,17 +59,16 @@ func CreateConnectionUnitTests() (*sql.DB, error) {
 
 func InsertRecord(db *sql.DB, record entity.Record) (int, error) {
 	log.Printf("InsertRecord in database %v", record)
-	// res, err := db.Exec("INSERT INTO records VALUES(NULL,CURRENT_TIMESTAMP,?,?,?);", record.Data, record.Accumulated, record.Version)
 	dataJson, err := json.Marshal(record.Data)
 	if err != nil {
 		return 0, err
 	}
-	accumulatedJson, err := json.Marshal(record.Accumulated)
+	updatesJson, err := json.Marshal(record.Updates)
 	if err != nil {
 		return 0, err
 	}
-	res, err := db.Exec("INSERT INTO records (id, version, timestamp, data, accumulated) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)",
-		record.ID, record.Version, dataJson, accumulatedJson)
+	res, err := db.Exec("INSERT INTO records (id, version, timestamp, data, updates) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)",
+		record.ID, record.Version, dataJson, updatesJson)
 
 	if err != nil {
 		return 0, err
@@ -83,7 +82,7 @@ func InsertRecord(db *sql.DB, record entity.Record) (int, error) {
 }
 
 func GetLatestRecord(db *sql.DB, id int) (*entity.Record, error) {
-	row := db.QueryRow("SELECT id, timestamp, data, accumulated, version FROM records WHERE id = ? ORDER BY timestamp DESC LIMIT 1", id)
+	row := db.QueryRow("SELECT id, timestamp, data, updates, version FROM records WHERE id = ? ORDER BY timestamp DESC LIMIT 1", id)
 	record := entity.Record{}
 
 	if row == nil {
@@ -92,8 +91,8 @@ func GetLatestRecord(db *sql.DB, id int) (*entity.Record, error) {
 
 	// parse the row and put in the record
 	var rawData string
-	var rawAccumulated string
-	err := row.Scan(&record.ID, &record.Timestamp, &rawData, &rawAccumulated, &record.Version)
+	var rawUpdates string
+	err := row.Scan(&record.ID, &record.Timestamp, &rawData, &rawUpdates, &record.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -105,15 +104,15 @@ func GetLatestRecord(db *sql.DB, id int) (*entity.Record, error) {
 		return &record, err
 	}
 
-	// parse the accumulated data
-	var accumulated map[string]string = make(map[string]string)
-	err = json.Unmarshal([]byte(rawAccumulated), &accumulated)
+	// parse the updates data
+	var updates map[string]string = make(map[string]string)
+	err = json.Unmarshal([]byte(rawUpdates), &updates)
 	if err != nil {
 		return &record, err
 	}
 
 	record.Data = data
-	record.Accumulated = accumulated
+	record.Updates = updates
 
 	return &record, nil
 }
@@ -128,7 +127,7 @@ func GetRecords(db *sql.DB, id int) ([]*entity.Record, error) {
 	var records []*entity.Record
 	for rows.Next() {
 		var record entity.Record
-		err = rows.Scan(&record.ID, &record.Timestamp, &record.Data, &record.Accumulated, &record.Version)
+		err = rows.Scan(&record.ID, &record.Timestamp, &record.Data, &record.Updates, &record.Version)
 		if err != nil {
 			return nil, err
 		}

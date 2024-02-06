@@ -122,8 +122,8 @@ func (a *APIV2) PostRecords(w http.ResponseWriter, r *http.Request) {
 			ID:   int(idNumber),
 			Data: recordMap,
 			// accumulated data is the same as the data in a new record
-			Accumulated: recordMap,
-			Version:     1,
+			Updates: recordMap,
+			Version: 1,
 		}
 		err = a.records.CreateRecord(ctx, record)
 	}

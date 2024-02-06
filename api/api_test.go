@@ -116,7 +116,7 @@ func TestPostRecordsV2(t *testing.T) {
 	req3, _ := http.NewRequest("GET", "/api/v2/records/1", nil)
 	rr3 := makeRequestV2(router, req3)
 	assert.Equal(t, 200, rr3.Code)
-	assert.Equal(t, "{\"id\":1,\"data\":{\"hello\":\"world\"}}\n", rr3.Body.String())
+	assert.Equal(t, "{\"id\":1,\"data\":{\"hello\":\"world 2\",\"status\":\"ok\"}}\n", rr3.Body.String())
 
 }
 
