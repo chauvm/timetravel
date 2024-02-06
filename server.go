@@ -23,18 +23,9 @@ func main() {
 	log.Println("main: starting server...")
 	router := mux.NewRouter()
 
-	// v1: I realized I misunderstood the requirements
-	// I keep v1 data in memory, should have been also
-	// persistent in SQLite
-	imMemoryService := service.NewInMemoryRecordService()
-	apiV1 := api.NewAPI(&imMemoryService)
+	// apiV1 := api.NewAPI(&imMemoryService)
 
-	apiRoute := router.PathPrefix("/api/v1").Subrouter()
-	apiRoute.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := json.NewEncoder(w).Encode(map[string]bool{"ok": true})
-		logError(err)
-	})
-	apiV1.CreateRoutes(apiRoute)
+	// apiV1.CreateRoutes(apiRoute)
 
 	// v2
 	log.Println("main: create database connection")
@@ -46,13 +37,23 @@ func main() {
 	}
 
 	persistentService := service.NewPersistentRecordService(db)
-	apiV2 := api.NewAPIV2(&persistentService)
+
+	newAPI := api.NewAPI(&persistentService)
+	newAPIV2 := api.NewAPIV2(&persistentService)
+
+	apiRouteV1 := router.PathPrefix("/api/v1").Subrouter()
+	apiRouteV1.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		err := json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+		logError(err)
+	})
 	apiRouteV2 := router.PathPrefix("/api/v2").Subrouter()
 	apiRouteV2.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 		logError(err)
 	})
-	apiV2.CreateRoutes(apiRouteV2)
+
+	newAPI.CreateRoutes(apiRouteV1)
+	newAPIV2.CreateRoutes(apiRouteV2)
 
 	address := "127.0.0.1:8000"
 	srv := &http.Server{

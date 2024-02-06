@@ -38,67 +38,67 @@ type RecordService interface {
 	GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error)
 }
 
-// InMemoryRecordService is an in-memory implementation of RecordService.
-type InMemoryRecordService struct {
-	data map[int]entity.Record
-}
+// // InMemoryRecordService is an in-memory implementation of RecordService.
+// type InMemoryRecordService struct {
+// 	data map[int]entity.Record
+// }
 
-func NewInMemoryRecordService() InMemoryRecordService {
-	return InMemoryRecordService{
-		data: map[int]entity.Record{},
-	}
-}
+// func NewInMemoryRecordService() InMemoryRecordService {
+// 	return InMemoryRecordService{
+// 		data: map[int]entity.Record{},
+// 	}
+// }
 
-func (s *InMemoryRecordService) GetRecord(ctx context.Context, id int) (entity.Record, error) {
-	record := s.data[id]
-	if record.ID == 0 {
-		return entity.Record{}, ErrRecordDoesNotExist
-	}
+// func (s *InMemoryRecordService) GetRecord(ctx context.Context, id int) (entity.Record, error) {
+// 	record := s.data[id]
+// 	if record.ID == 0 {
+// 		return entity.Record{}, ErrRecordDoesNotExist
+// 	}
 
-	record = record.Copy() // copy is necessary so modifations to the record don't change the stored record
-	return record, nil
-}
+// 	record = record.Copy() // copy is necessary so modifations to the record don't change the stored record
+// 	return record, nil
+// }
 
-func (s *InMemoryRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
-	id := record.ID
-	if id <= 0 {
-		return ErrRecordIDInvalid
-	}
+// func (s *InMemoryRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
+// 	id := record.ID
+// 	if id <= 0 {
+// 		return ErrRecordIDInvalid
+// 	}
 
-	existingRecord := s.data[id]
-	if existingRecord.ID != 0 {
-		return ErrRecordAlreadyExists
-	}
+// 	existingRecord := s.data[id]
+// 	if existingRecord.ID != 0 {
+// 		return ErrRecordAlreadyExists
+// 	}
 
-	s.data[id] = record
-	return nil
-}
+// 	s.data[id] = record
+// 	return nil
+// }
 
-func (s *InMemoryRecordService) UpdateRecord(ctx context.Context, id int, updates map[string]*string) (entity.Record, error) {
-	entry := s.data[id]
-	if entry.ID == 0 {
-		return entity.Record{}, ErrRecordDoesNotExist
-	}
+// func (s *InMemoryRecordService) UpdateRecord(ctx context.Context, id int, updates map[string]*string) (entity.Record, error) {
+// 	entry := s.data[id]
+// 	if entry.ID == 0 {
+// 		return entity.Record{}, ErrRecordDoesNotExist
+// 	}
 
-	for key, value := range updates {
-		if value == nil { // deletion update
-			delete(entry.Data, key)
-		} else {
-			entry.Data[key] = *value
-		}
-	}
+// 	for key, value := range updates {
+// 		if value == nil { // deletion update
+// 			delete(entry.Data, key)
+// 		} else {
+// 			entry.Data[key] = *value
+// 		}
+// 	}
 
-	return entry.Copy(), nil
-}
-func (s *InMemoryRecordService) GetRecordVersions(ctx context.Context, id int) ([]int, error) {
-	// v1 shouldn't have this method
-	return nil, nil
-}
+// 	return entry.Copy(), nil
+// }
+// func (s *InMemoryRecordService) GetRecordVersions(ctx context.Context, id int) ([]int, error) {
+// 	// v1 shouldn't have this method
+// 	return nil, nil
+// }
 
-func (s *InMemoryRecordService) GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error) {
-	// v1 shouldn't have this method
-	return entity.Record{}, nil
-}
+// func (s *InMemoryRecordService) GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error) {
+// 	// v1 shouldn't have this method
+// 	return entity.Record{}, nil
+// }
 
 // PersistentRecordService is a persistent implementation of RecordService.
 type PersistentRecordService struct {
