@@ -142,5 +142,23 @@ Conclusion: we can pick a strategy depending on the actual shape of the records 
   - acceptance criteria 1-4
 Normally I write unit tests as I implement the code, but I'd need more time to get used to Go again, so I'll likely just use Postman or Python to visually check for expected results
   - acceptance criteria 5: kill the server and restart, see if a GET request still returns data
-- Optimization for DB
+- (Stretch) Optimization for DB
   - modify primary keys, add indexes as needed
+
+
+
+## Implementation notes
+### Sqlite
+If have time create a separate test db for local testing
+```
+sqlite3 /tmp/rainbow_test.db
+SQLite version 3.39.5 2022-10-14 20:58:05
+Enter ".help" for usage hints.
+sqlite> CREATE TABLE IF NOT EXISTS records (
+   ...>  id INTEGER NOT NULL PRIMARY KEY,
+   ...>  timestamp DATETIME NOT NULL,
+   ...>  data STRING NOT NULL,
+   ...>  accumulated STRING,
+   ...>  version INTEGER NOT NULL
+   ...>  );
+```

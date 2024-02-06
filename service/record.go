@@ -107,7 +107,9 @@ func (s *PersistentRecordService) GetRecord(ctx context.Context, id int) (entity
 		return entity.Record{}, ErrRecordDoesNotExist
 	}
 
-	return lastRecord, nil
+	record := *lastRecord
+
+	return record, nil
 }
 
 func (s *PersistentRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
