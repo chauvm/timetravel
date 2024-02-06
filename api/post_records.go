@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -74,6 +75,7 @@ func (a *API) PostRecords(w http.ResponseWriter, r *http.Request) {
 // if the record exists, the record is updated.
 // if the record doesn't exist, the record is created.
 func (a *APIV2) PostRecords(w http.ResponseWriter, r *http.Request) {
+	log.Print("PostRecords v2")
 	ctx := r.Context()
 	id := mux.Vars(r)["id"]
 	idNumber, err := strconv.ParseInt(id, 10, 32)
@@ -98,10 +100,12 @@ func (a *APIV2) PostRecords(w http.ResponseWriter, r *http.Request) {
 		ctx,
 		int(idNumber),
 	)
+	log.Printf("PostRecords v2: record: %v", record)
 
 	if !errors.Is(err, service.ErrRecordDoesNotExist) { // record exists
 		record, err = a.records.UpdateRecord(ctx, int(idNumber), body)
 	} else { // record does not exist
+		log.Print("PostRecords v2: record does not exist")
 
 		// exclude the delete updates
 		recordMap := map[string]string{}
@@ -112,8 +116,10 @@ func (a *APIV2) PostRecords(w http.ResponseWriter, r *http.Request) {
 		}
 
 		record = entity.Record{
-			ID:   int(idNumber),
-			Data: recordMap,
+			ID:          int(idNumber),
+			Data:        recordMap,
+			Accumulated: nil,
+			Version:     1,
 		}
 		err = a.records.CreateRecord(ctx, record)
 	}

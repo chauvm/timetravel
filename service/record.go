@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 
+	"github.com/chauvm/timetravel/database"
 	"github.com/chauvm/timetravel/entity"
 )
 
@@ -95,17 +97,26 @@ func NewPersistentRecordService(db *sql.DB) PersistentRecordService {
 }
 
 func (s *PersistentRecordService) GetRecord(ctx context.Context, id int) (entity.Record, error) {
-	// record := s.data[id]
-	// if record.ID == 0 {
-	// 	return entity.Record{}, ErrRecordDoesNotExist
-	// }
+	lastRecord, err := database.GetRecord(s.db, id)
+	if err != nil {
+		log.Fatal(err)
+		return entity.Record{}, err
+	}
 
-	// record = record.Copy() // copy is necessary so modifations to the record don't change the stored record
-	// return record, nil
-	return entity.Record{}, nil
+	if lastRecord == nil {
+		return entity.Record{}, ErrRecordDoesNotExist
+	}
+
+	return lastRecord, nil
 }
 
 func (s *PersistentRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
+	log.Printf("CreateRecord in PersistentRecordService %v", record)
+	_, err := database.InsertRecord(s.db, record)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
 	// id := record.ID
 	// if id <= 0 {
 	// 	return ErrRecordIDInvalid

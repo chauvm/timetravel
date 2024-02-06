@@ -47,3 +47,20 @@ func InsertRecord(db *sql.DB, record entity.Record) (int, error) {
 	}
 	return int(id), nil
 }
+
+func GetRecord(db *sql.DB, id int) (*entity.Record, error) {
+	rows, err := db.Query("SELECT * FROM records WHERE id = ? ORDER BY timestamp DESC LIMIT 1;", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var record entity.Record
+	for rows.Next() {
+		err = rows.Scan(&record.ID, &record.Timestamp, &record.Data, &record.Accumulated, &record.Version)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &record, nil
+}

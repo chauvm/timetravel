@@ -58,8 +58,8 @@ records:
 id | timestamp | data
 ---------------------
 1  | ts1       | {"hello":"world"}
-2  | ts2       | {"hello":"world 2","status":"ok"}
-3  | ts3       | {"hello":null}
+1  | ts2       | {"hello":"world 2","status":"ok"}
+1  | ts3       | {"hello":null}
 
 
 2.2 Calculate composition after each update
@@ -71,8 +71,8 @@ records
 id | timestamp | data | accumulated_data
 ---------------------
 1  | ts1       | {"hello":"world"}                 | {"hello":"world"}
-2  | ts2       | {"hello":"world 2","status":"ok"} | {"hello":"world 2","status":"ok"}
-3  | ts3       | {"hello":null}                    | {"status":"ok"}
+1  | ts2       | {"hello":"world 2","status":"ok"} | {"hello":"world 2","status":"ok"}
+1  | ts3       | {"hello":null}                    | {"status":"ok"}
 
 
 
@@ -85,10 +85,10 @@ id  | timestamp | data | accumulated
 ---------------------
 1   | ts1       | {"hello":"world"}    | NULL
 ...
-10  | ts10       | {"hello":"world 2"} | {"hello":"world 2","status":"ok"}
-11  | ts11       | {"hello":null}      | NULL
-12  | ts11       | {"status":null}     | NULL
-13  | ts11       | {"hi":"mom"}        | NULL
+1  | ts10       | {"hello":"world 2"} | {"hello":"world 2","status":"ok"}
+1  | ts11       | {"hello":null}      | NULL
+1  | ts12       | {"status":null}     | NULL
+1  | ts13       | {"hi":"mom"}        | NULL
 
 2.4 Flatten the data map, store field-value pair independently to quickly retrieve a field's latest value
 
