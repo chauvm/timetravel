@@ -156,3 +156,39 @@ func GetRecordVersions(db *sql.DB, id int) ([]int, error) {
 	}
 	return versions, nil
 }
+
+func GetRecordAtVersion(db *sql.DB, id int, version int) (*entity.Record, error) {
+	row := db.QueryRow("SELECT id, timestamp, data, updates, version FROM records WHERE id = ? AND version = ?", id, version)
+	record := entity.Record{}
+
+	if row == nil {
+		return &record, nil
+	}
+
+	// parse the row and put in the record
+	var rawData string
+	var rawUpdates string
+	err := row.Scan(&record.ID, &record.Timestamp, &rawData, &rawUpdates, &record.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	// parse the insertion data
+	var data map[string]string = make(map[string]string)
+	err = json.Unmarshal([]byte(rawData), &data)
+	if err != nil {
+		return &record, err
+	}
+
+	// parse the updates data
+	var updates map[string]string = make(map[string]string)
+	err = json.Unmarshal([]byte(rawUpdates), &updates)
+	if err != nil {
+		return &record, err
+	}
+
+	record.Data = data
+	record.Updates = updates
+
+	return &record, nil
+}

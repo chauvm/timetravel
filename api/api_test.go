@@ -154,11 +154,16 @@ func TestGetVersions(t *testing.T) {
 	assert.Equal(t, "{\"data\":[3,2,1]}\n", rr1.Body.String())
 }
 
-func TestGetRecordAtTimestamp(t *testing.T) {
+func TestGetRecordAtVersion(t *testing.T) {
 	router := setUpV2()
+	// a non-existing record should return an error
+	req, _ := http.NewRequest("GET", "/api/v2/records/1/1", nil)
+	rr := makeRequestV2(router, req)
+	assert.Equal(t, 400, rr.Code)
+	assert.Equal(t, "{\"error\":\"Unable to retrieve record of id 1 at version 1\"}\n", rr.Body.String())
+
 	// create a couple of versions of a record
-	// TODO: freeze time
-	req, _ := http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world"}`)))
+	req, _ = http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world"}`)))
 	makeRequestV2(router, req)
 	req, _ = http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer([]byte(`{"hello":"world 2","status":"ok"}`)))
 	makeRequestV2(router, req)
@@ -166,18 +171,18 @@ func TestGetRecordAtTimestamp(t *testing.T) {
 	makeRequestV2(router, req)
 
 	// assert data at each version
-	req1, _ := http.NewRequest("GET", "/api/v2/records/1/1707222000", nil)
+	req1, _ := http.NewRequest("GET", "/api/v2/records/1/1", nil)
 	rr1 := makeRequestV2(router, req1)
 	assert.Equal(t, 200, rr1.Code)
-	assert.Equal(t, "{\"id\":1,\"data\":{\"hello\":\"world\"}\n", rr1.Body.String())
+	assert.Equal(t, "{\"id\":1,\"data\":{\"hello\":\"world\"}}\n", rr1.Body.String())
 
-	req2, _ := http.NewRequest("GET", "/api/v2/records/1/1707222001", nil)
+	req2, _ := http.NewRequest("GET", "/api/v2/records/1/2", nil)
 	rr2 := makeRequestV2(router, req2)
 	assert.Equal(t, 200, rr2.Code)
-	assert.Equal(t, "{\"id\":1,\"data\":\"hello\":\"world 2\",\"status\":\"ok\"}\n", rr2.Body.String())
+	assert.Equal(t, "{\"id\":1,\"data\":{\"hello\":\"world 2\",\"status\":\"ok\"}}\n", rr2.Body.String())
 
-	req3, _ := http.NewRequest("GET", "/api/v2/records/1/1707222002", nil)
+	req3, _ := http.NewRequest("GET", "/api/v2/records/1/3", nil)
 	rr3 := makeRequestV2(router, req3)
 	assert.Equal(t, 200, rr3.Code)
-	assert.Equal(t, "{\"id\":1,\"data\":{\"status\":\"ok\"}\n", rr3.Body.String())
+	assert.Equal(t, "{\"id\":1,\"data\":{\"status\":\"ok\"}}\n", rr3.Body.String())
 }

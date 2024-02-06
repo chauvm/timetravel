@@ -33,6 +33,9 @@ type RecordService interface {
 
 	// GetRecordVersions will retrieve all versions of a record.
 	GetRecordVersions(ctx context.Context, id int) ([]int, error)
+
+	// GetRecordAtVersion will retrieve a record at a specific version.
+	GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error)
 }
 
 // InMemoryRecordService is an in-memory implementation of RecordService.
@@ -90,6 +93,11 @@ func (s *InMemoryRecordService) UpdateRecord(ctx context.Context, id int, update
 func (s *InMemoryRecordService) GetRecordVersions(ctx context.Context, id int) ([]int, error) {
 	// v1 shouldn't have this method
 	return nil, nil
+}
+
+func (s *InMemoryRecordService) GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error) {
+	// v1 shouldn't have this method
+	return entity.Record{}, nil
 }
 
 // PersistentRecordService is a persistent implementation of RecordService.
@@ -184,4 +192,15 @@ func (s *PersistentRecordService) GetRecordVersions(ctx context.Context, id int)
 		return versions, err
 	}
 	return versions, nil
+}
+
+func (s *PersistentRecordService) GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error) {
+	record, err := database.GetRecordAtVersion(s.db, id, version)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return entity.Record{}, ErrRecordDoesNotExist
+		}
+		return entity.Record{}, err
+	}
+	return *record, nil
 }

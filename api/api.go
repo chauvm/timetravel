@@ -33,5 +33,5 @@ func (a *APIV2) CreateRoutes(routes *mux.Router) {
 	routes.Path("/records/{id}").HandlerFunc(a.PostRecords).Methods("POST")
 	// new endpoints compared to v1
 	routes.Path("/records/{id}/versions").HandlerFunc(a.GetVersions).Methods("GET")
-	routes.Path("/records/{id}/{timestamp}").HandlerFunc(a.GetRecordAtTimestamp).Methods("GET")
+	routes.Path("/records/{id}/{version}").HandlerFunc(a.GetRecordAtVersion).Methods("GET")
 }
