@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"log"
 
+	"github.com/chauvm/timetravel/database"
 	"github.com/chauvm/timetravel/entity"
 )
 
@@ -27,57 +30,177 @@ type RecordService interface {
 	//
 	// UpdateRecord will error if id <= 0 or the record does not exist with that id.
 	UpdateRecord(ctx context.Context, id int, updates map[string]*string) (entity.Record, error)
+
+	// GetRecordVersions will retrieve all versions of a record.
+	GetRecordVersions(ctx context.Context, id int) ([]int, error)
+
+	// GetRecordAtVersion will retrieve a record at a specific version.
+	GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error)
 }
 
-// InMemoryRecordService is an in-memory implementation of RecordService.
-type InMemoryRecordService struct {
-	data map[int]entity.Record
+// // InMemoryRecordService is an in-memory implementation of RecordService.
+// type InMemoryRecordService struct {
+// 	data map[int]entity.Record
+// }
+
+// func NewInMemoryRecordService() InMemoryRecordService {
+// 	return InMemoryRecordService{
+// 		data: map[int]entity.Record{},
+// 	}
+// }
+
+// func (s *InMemoryRecordService) GetRecord(ctx context.Context, id int) (entity.Record, error) {
+// 	record := s.data[id]
+// 	if record.ID == 0 {
+// 		return entity.Record{}, ErrRecordDoesNotExist
+// 	}
+
+// 	record = record.Copy() // copy is necessary so modifations to the record don't change the stored record
+// 	return record, nil
+// }
+
+// func (s *InMemoryRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
+// 	id := record.ID
+// 	if id <= 0 {
+// 		return ErrRecordIDInvalid
+// 	}
+
+// 	existingRecord := s.data[id]
+// 	if existingRecord.ID != 0 {
+// 		return ErrRecordAlreadyExists
+// 	}
+
+// 	s.data[id] = record
+// 	return nil
+// }
+
+// func (s *InMemoryRecordService) UpdateRecord(ctx context.Context, id int, updates map[string]*string) (entity.Record, error) {
+// 	entry := s.data[id]
+// 	if entry.ID == 0 {
+// 		return entity.Record{}, ErrRecordDoesNotExist
+// 	}
+
+// 	for key, value := range updates {
+// 		if value == nil { // deletion update
+// 			delete(entry.Data, key)
+// 		} else {
+// 			entry.Data[key] = *value
+// 		}
+// 	}
+
+// 	return entry.Copy(), nil
+// }
+// func (s *InMemoryRecordService) GetRecordVersions(ctx context.Context, id int) ([]int, error) {
+// 	// v1 shouldn't have this method
+// 	return nil, nil
+// }
+
+// func (s *InMemoryRecordService) GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error) {
+// 	// v1 shouldn't have this method
+// 	return entity.Record{}, nil
+// }
+
+// PersistentRecordService is a persistent implementation of RecordService.
+type PersistentRecordService struct {
+	db *sql.DB
 }
 
-func NewInMemoryRecordService() InMemoryRecordService {
-	return InMemoryRecordService{
-		data: map[int]entity.Record{},
+func NewPersistentRecordService(db *sql.DB) PersistentRecordService {
+	return PersistentRecordService{
+		db: db,
 	}
 }
 
-func (s *InMemoryRecordService) GetRecord(ctx context.Context, id int) (entity.Record, error) {
-	record := s.data[id]
-	if record.ID == 0 {
-		return entity.Record{}, ErrRecordDoesNotExist
+func (s *PersistentRecordService) GetRecord(ctx context.Context, id int) (entity.Record, error) {
+	// Approach 2.2 first, assume a row's accumulated_data has everything we need
+	latestRecord, err := database.GetLatestRecord(s.db, id)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return entity.Record{}, ErrRecordDoesNotExist
+		}
+		return entity.Record{}, err
 	}
 
-	record = record.Copy() // copy is necessary so modifations to the record don't change the stored record
-	return record, nil
+	return *latestRecord, nil
 }
 
-func (s *InMemoryRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
-	id := record.ID
-	if id <= 0 {
-		return ErrRecordIDInvalid
+func (s *PersistentRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
+	log.Printf("CreateRecord in PersistentRecordService %v", record)
+	id, err := database.InsertRecord(s.db, record)
+	log.Printf("CreateRecord in PersistentRecordService with id %v", id)
+	if err != nil {
+		log.Fatal(err)
+		return err
 	}
+	// id := record.ID
+	// if id <= 0 {
+	// 	return ErrRecordIDInvalid
+	// }
 
-	existingRecord := s.data[id]
-	if existingRecord.ID != 0 {
-		return ErrRecordAlreadyExists
-	}
+	// existingRecord := s.data[id]
+	// if existingRecord.ID != 0 {
+	// 	return ErrRecordAlreadyExists
+	// }
 
-	s.data[id] = record
+	// s.data[id] = record
 	return nil
 }
 
-func (s *InMemoryRecordService) UpdateRecord(ctx context.Context, id int, updates map[string]*string) (entity.Record, error) {
-	entry := s.data[id]
-	if entry.ID == 0 {
-		return entity.Record{}, ErrRecordDoesNotExist
+func (s *PersistentRecordService) UpdateRecord(ctx context.Context, id int, updates map[string]*string) (entity.Record, error) {
+	latestRecord, err := s.GetRecord(ctx, id)
+	if err != nil {
+		return entity.Record{}, err
+	}
+	latestRecordVersion := latestRecord.Version
+
+	// newRecordData is a copy of the latestRecord's data
+	newRecordData := map[string]string{}
+	for key, value := range latestRecord.Data {
+		newRecordData[key] = value
 	}
 
+	// apply the updates to newRecordData
 	for key, value := range updates {
-		if value == nil { // deletion update
-			delete(entry.Data, key)
+		if value == nil {
+			delete(newRecordData, key)
 		} else {
-			entry.Data[key] = *value
+			newRecordData[key] = *value
 		}
 	}
 
-	return entry.Copy(), nil
+	// create a new record with the updated data
+	newRecord := entity.Record{
+		ID:      id,
+		Data:    newRecordData,
+		Updates: latestRecord.Updates,
+		Version: latestRecordVersion + 1,
+	}
+
+	_, err = database.InsertRecord(s.db, newRecord)
+
+	if err != nil {
+		return entity.Record{}, err
+	}
+
+	return newRecord, nil
+}
+
+func (s *PersistentRecordService) GetRecordVersions(ctx context.Context, id int) ([]int, error) {
+	versions, err := database.GetRecordVersions(s.db, id)
+	if err != nil {
+		return versions, err
+	}
+	return versions, nil
+}
+
+func (s *PersistentRecordService) GetRecordAtVersion(ctx context.Context, id int, version int) (entity.Record, error) {
+	record, err := database.GetRecordAtVersion(s.db, id, version)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return entity.Record{}, ErrRecordDoesNotExist
+		}
+		return entity.Record{}, err
+	}
+	return *record, nil
 }

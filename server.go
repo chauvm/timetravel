@@ -20,27 +20,40 @@ func logError(err error) {
 }
 
 func main() {
+	log.Println("main: starting server...")
 	router := mux.NewRouter()
 
-	// v1
-	service := service.NewInMemoryRecordService()
-	api := api.NewAPI(&service)
+	// apiV1 := api.NewAPI(&imMemoryService)
 
-	apiRoute := router.PathPrefix("/api/v1").Subrouter()
-	apiRoute.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// apiV1.CreateRoutes(apiRoute)
+
+	// v2
+	log.Println("main: create database connection")
+	db, err := database.CreateConnection()
+	log.Println("main: database connection created")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	persistentService := service.NewPersistentRecordService(db)
+
+	newAPI := api.NewAPI(&persistentService)
+	newAPIV2 := api.NewAPIV2(&persistentService)
+
+	apiRouteV1 := router.PathPrefix("/api/v1").Subrouter()
+	apiRouteV1.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 		logError(err)
 	})
-	api.CreateRoutes(apiRoute)
-
-	// v2
-	db := database.connection.CreateConnection()
-	apiV2 := api.NewAPIV2(&db)
 	apiRouteV2 := router.PathPrefix("/api/v2").Subrouter()
 	apiRouteV2.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 		logError(err)
 	})
+
+	newAPI.CreateRoutes(apiRouteV1)
+	newAPIV2.CreateRoutes(apiRouteV2)
 
 	address := "127.0.0.1:8000"
 	srv := &http.Server{
