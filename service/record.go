@@ -112,7 +112,8 @@ func (s *PersistentRecordService) GetRecord(ctx context.Context, id int) (entity
 
 func (s *PersistentRecordService) CreateRecord(ctx context.Context, record entity.Record) error {
 	log.Printf("CreateRecord in PersistentRecordService %v", record)
-	_, err := database.InsertRecord(s.db, record)
+	id, err := database.InsertRecord(s.db, record)
+	log.Printf("CreateRecord in PersistentRecordService with id %v", id)
 	if err != nil {
 		log.Fatal(err)
 		return err

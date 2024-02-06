@@ -59,6 +59,8 @@ func (a *APIV2) GetRecords(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = writeJSON(w, record, http.StatusOK)
+	returnedRecord := record.GetExternalRecord()
+
+	err = writeJSON(w, returnedRecord, http.StatusOK)
 	logError(err)
 }

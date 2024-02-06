@@ -104,6 +104,9 @@ func (a *APIV2) PostRecords(w http.ResponseWriter, r *http.Request) {
 
 	if !errors.Is(err, service.ErrRecordDoesNotExist) { // record exists
 		record, err = a.records.UpdateRecord(ctx, int(idNumber), body)
+		// TODO: add a new row for the new version
+
+		// TODO: approach 2.3: save the accumulated_data in the row with version divisible by 10
 	} else { // record does not exist
 		log.Print("PostRecords v2: record does not exist")
 
@@ -132,6 +135,9 @@ func (a *APIV2) PostRecords(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = writeJSON(w, record, http.StatusOK)
+	// filter unnecessary data in returned result, such as
+	// accumulated data, version, and timestamp
+	returnedRecord := record.GetExternalRecord()
+	err = writeJSON(w, returnedRecord, http.StatusOK)
 	logError(err)
 }

@@ -2,7 +2,9 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
+	"os"
 
 	"github.com/chauvm/timetravel/entity"
 	_ "github.com/mattn/go-sqlite3"
@@ -38,6 +40,10 @@ func CreateConnection() (*sql.DB, error) {
 }
 
 func CreateConnectionUnitTests() (*sql.DB, error) {
+	// if DATABASE_FILE_UNIT_TEST exists, remove it
+	if err := os.Remove(DATABASE_FILE_UNIT_TEST); err != nil {
+		log.Println(err)
+	}
 	db, err := sql.Open("sqlite3", DATABASE_FILE_UNIT_TEST)
 	if err != nil {
 		log.Fatal(err)
@@ -54,7 +60,16 @@ func CreateConnectionUnitTests() (*sql.DB, error) {
 func InsertRecord(db *sql.DB, record entity.Record) (int, error) {
 	log.Printf("InsertRecord in database %v", record)
 	// res, err := db.Exec("INSERT INTO records VALUES(NULL,CURRENT_TIMESTAMP,?,?,?);", record.Data, record.Accumulated, record.Version)
-	res, err := db.Exec("INSERT INTO records (id, version, timestamp, data, accumulated_data) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)", record.ID, record.Version, record.Data, record.Accumulated)
+	dataJson, err := json.Marshal(record.Data)
+	if err != nil {
+		return 0, err
+	}
+	accumulatedJson, err := json.Marshal(record.Accumulated)
+	if err != nil {
+		return 0, err
+	}
+	res, err := db.Exec("INSERT INTO records (id, version, timestamp, data, accumulated) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)",
+		record.ID, record.Version, dataJson, accumulatedJson)
 
 	if err != nil {
 		return 0, err
@@ -68,16 +83,38 @@ func InsertRecord(db *sql.DB, record entity.Record) (int, error) {
 }
 
 func GetLatestRecord(db *sql.DB, id int) (*entity.Record, error) {
-	row := db.QueryRow("SELECT * FROM records WHERE id = ? ORDER BY timestamp DESC LIMIT 1", id)
+	row := db.QueryRow("SELECT id, timestamp, data, accumulated, version FROM records WHERE id = ? ORDER BY timestamp DESC LIMIT 1", id)
 	record := entity.Record{}
 
 	if row == nil {
 		return &record, nil
 	}
-	err := row.Scan(&record.ID, &record.Timestamp, &record.Data, &record.Accumulated, &record.Version)
+
+	// parse the row and put in the record
+	var rawData string
+	var rawAccumulated string
+	err := row.Scan(&record.ID, &record.Timestamp, &rawData, &rawAccumulated, &record.Version)
 	if err != nil {
 		return nil, err
 	}
+
+	// parse the insertion data
+	var data map[string]string = make(map[string]string)
+	err = json.Unmarshal([]byte(rawData), &data)
+	if err != nil {
+		return &record, err
+	}
+
+	// parse the accumulated data
+	var accumulated map[string]string = make(map[string]string)
+	err = json.Unmarshal([]byte(rawAccumulated), &accumulated)
+	if err != nil {
+		return &record, err
+	}
+
+	record.Data = data
+	record.Accumulated = accumulated
+
 	return &record, nil
 }
 
