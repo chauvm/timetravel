@@ -3,7 +3,7 @@ Persistence: Each update creates a new version of the data structure.
 All old versions can be queried and may also be updated.
 
 Types of persistence
-- Partial persistence
+- Partial persistence => _Seems like what we want_
   - Updates operate only on latest version of structure
   - Queries can examine old versions
   - History is linear (sequence of operations forms a single timeline)
@@ -51,7 +51,7 @@ Approach 1: We can use a record's insertion timestamps as unique identifiers to 
 
 Approach 2: We can have a version field, which is an increasing integer to represent users in the UI.
 
-I chose approach 2 for ease of implementation, but there will be concerns around how to guarantee that versions are set correctly.
+_I chose approach 2 for ease of implementation_, but there will be concerns around how to guarantee that versions are set or incremented correctly.
 
 2. How to effectively accumulate fields across a record's versions?
 2.1 Merge updates one by one starting from the beginning at runtime
@@ -59,11 +59,11 @@ I chose approach 2 for ease of implementation, but there will be concerns around
 The most brute-force way is to store each update as a blob and merge appropriate updates at runtime to get the data. However, this approach could be quite time-consuming and memory-consuming if there are many updates.
 
 records:
-id | timestamp | updates
----------------------
-1  | ts1       | {"hello":"world"}
-1  | ts2       | {"hello":"world 2","status":"ok"}
-1  | ts3       | {"hello":null}
+id | timestamp | version | updates
+---|-----------|---------|--------
+1  | ts1       | 1       | {"hello":"world"}
+1  | ts2       | 2       | {"hello":"world 2","status":"ok"}
+1  | ts3       | 3       | {"hello":null}
 
 
 2.2 Calculate composition after each update
@@ -72,27 +72,25 @@ In addition to storing each update, we also calculate accumulated record data at
 Record retrieval at a particular version would be fast, with the trade-off of space. Obviously, if a record contains a lot of fields, a single field update would require storing another set of record.
 
 records
-id | timestamp | updates | data
----------------------
-1  | ts1       | {"hello":"world"}                 | {"hello":"world"}
-1  | ts2       | {"hello":"world 2","status":"ok"} | {"hello":"world 2","status":"ok"}
-1  | ts3       | {"hello":null}                    | {"status":"ok"}
-
-
+id | timestamp | version | updates | data
+---|-----------|---------|---------|------
+1  | ts1       | 1       | {"hello":"world"}                 | {"hello":"world"}
+1  | ts2       | 2       | {"hello":"world 2","status":"ok"} | {"hello":"world 2","status":"ok"}
+1  | ts3       | 3       | {"hello":null}                    | {"status":"ok"}
 
 2.3 Hybrid: calculate composition after X updates, and apply the delta
 
 We can combine the previous approaches. Depending on the traffic pattern, we could come up with a threshold, such as after 10 new updates, we calculate a checkpoint for the record, i.e. how the record looks like after 10, 20, 30... updates. If users request to see data at `version=13`, we find the checkpoint data at `version=10`, find the updates happening between `10` and `13`, and merge their fields to return `{"hi":"mom"}`.
 
 records
-id  | timestamp | updates | data
----------------------
-1   | ts1       | {"hello":"world"}    | NULL
+id  | timestamp | version | updates | data
+----|-----------|---------|---------|-----
+1   | ts1       | 1       | {"hello":"world"}    | NULL
 ...
-1  | ts10       | {"hello":"world 2"} | {"hello":"world 2","status":"ok"}
-1  | ts11       | {"hello":null}      | NULL
-1  | ts12       | {"status":null}     | NULL
-1  | ts13       | {"hi":"mom"}        | NULL
+1  | ts10       | 10      | {"hello":"world 2"} | {"hello":"world 2","status":"ok"}
+1  | ts11       | 11      | {"hello":null}      | NULL
+1  | ts12       | 12      | {"status":null}     | NULL
+1  | ts13       | 13      | {"hi":"mom"}        | NULL
 
 2.4 Flatten the data map, store field-value pair independently to quickly retrieve a field's latest value
 
@@ -100,13 +98,13 @@ The above approaches all require merging maps. Depending on the number of fields
 
 records
 id  | field_id | field_name |
------------------------------
+----|----------|------------|---
 1   | 1        | hello
 1   | 2        | status
 
 customer_data
 field_id | timestamp | field_value
-----------------------------------
+---------|-----------|--------------
 1        | ts1       | world
 1        | ts2       | world 2
 2        | ts2       | ok
@@ -128,13 +126,13 @@ LIMIT 1
 ```
 The main cons of this approach is that the number of queries increases proportionally with the number of fields, which we may not have a control over - a bad actor could send a payload with lots of fields and hammer our database.
 
-Conclusion: we can pick a strategy depending on the actual shape of the records and number of updates per record. Without these data, I'll blindly go with the approach 2.3 with an update interval of 10 versions.
+*Conclusion*: we can pick a strategy depending on the actual shape of the records and number of updates per record. Without these data, in real life I'll blindly go with the approach 2.3 with an update interval of 10 versions. _For the purpose of this assignment, I'll implement 2.2 Calculate composition after each update given its ease of implementation_.
 
 # Implementation details
 ## Switch To Sqlite
 - Add some code to create a database connection
-- if there's no database, create one, and create `records` and `customer_data` table
-- (if have time) handle database connection error
+- if there's no database, create one, and create `records` table
+- handle database connection error
 
 ## Add Time Travel
 - Add `/api/v2` endpoints
