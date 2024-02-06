@@ -97,19 +97,17 @@ func NewPersistentRecordService(db *sql.DB) PersistentRecordService {
 }
 
 func (s *PersistentRecordService) GetRecord(ctx context.Context, id int) (entity.Record, error) {
-	lastRecord, err := database.GetRecord(s.db, id)
+	// Approach 2.2 first, assume a row's accumulated_data has everything we need
+	latestRecord, err := database.GetLatestRecord(s.db, id)
+
 	if err != nil {
-		log.Fatal(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return entity.Record{}, ErrRecordDoesNotExist
+		}
 		return entity.Record{}, err
 	}
 
-	if lastRecord == nil {
-		return entity.Record{}, ErrRecordDoesNotExist
-	}
-
-	record := *lastRecord
-
-	return record, nil
+	return *latestRecord, nil
 }
 
 func (s *PersistentRecordService) CreateRecord(ctx context.Context, record entity.Record) error {

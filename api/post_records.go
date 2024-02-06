@@ -116,9 +116,10 @@ func (a *APIV2) PostRecords(w http.ResponseWriter, r *http.Request) {
 		}
 
 		record = entity.Record{
-			ID:          int(idNumber),
-			Data:        recordMap,
-			Accumulated: nil,
+			ID:   int(idNumber),
+			Data: recordMap,
+			// accumulated data is the same as the data in a new record
+			Accumulated: recordMap,
 			Version:     1,
 		}
 		err = a.records.CreateRecord(ctx, record)

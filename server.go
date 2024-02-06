@@ -23,7 +23,9 @@ func main() {
 	log.Println("main: starting server...")
 	router := mux.NewRouter()
 
-	// v1
+	// v1: I realized I misunderstood the requirements
+	// I keep v1 data in memory, should have been also
+	// persistent in SQLite
 	imMemoryService := service.NewInMemoryRecordService()
 	apiV1 := api.NewAPI(&imMemoryService)
 

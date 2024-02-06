@@ -34,7 +34,7 @@ func makeRequestV1(req *http.Request) *httptest.ResponseRecorder {
 
 func makeRequestV2(req *http.Request) *httptest.ResponseRecorder {
 	// sql test db
-	db, err := database.CreateConnection()
+	db, err := database.CreateConnectionUnitTests()
 	if err != nil {
 		panic(err)
 	}
@@ -79,18 +79,20 @@ func TestPostRecordsV1(t *testing.T) {
 // TODO 1: fix GET
 // GET /api/v2/records/{id}
 func TestGetRecordsV2(t *testing.T) {
+	// get a record not yet exist
 	req, _ := http.NewRequest("GET", "/api/v2/records/1", nil)
 	rr := makeRequestV2(req)
 	assert.Equal(t, 400, rr.Code)
-	assert.Equal(t, `{"id":1,"data":{}}`, rr.Body.String())
+	assert.Equal(t, "{\"error\":\"record of id 1 does not exist\"}\n", rr.Body.String())
 }
 
 func TestPostRecordsV2(t *testing.T) {
+	// create a new record
 	var jsonStr = []byte(`{"hello":"world"}`)
-	req, _ := http.NewRequest("POST", "/api/v2/records/1", bytes.NewBuffer(jsonStr))
+	req, _ := http.NewRequest("POST", "/api/v2/records/2", bytes.NewBuffer(jsonStr))
 	rr := makeRequestV2(req)
 	assert.Equal(t, 200, rr.Code)
-	assert.Equal(t, "{\"id\":1,\"data\":{\"hello\":\"world\"}\n", rr.Body.String())
+	assert.Equal(t, "{\"id\":2,\"data\":{\"hello\":\"world\"}\n", rr.Body.String())
 	// ^ FAIL, currently had extra ,\"accumulated\":null,\"version\":0,\"timestamp\":\"\"}
 }
 

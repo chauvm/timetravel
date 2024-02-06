@@ -41,7 +41,6 @@ func (a *API) GetRecords(w http.ResponseWriter, r *http.Request) {
 func (a *APIV2) GetRecords(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := mux.Vars(r)["id"]
-
 	idNumber, err := strconv.ParseInt(id, 10, 32)
 
 	if err != nil || idNumber <= 0 {
